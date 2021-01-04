@@ -1,0 +1,196 @@
+<template lang="wxml" minapp="mpx">
+  <view class="container">
+    <view>{{ count }}</view>
+    <button bindtap="hanldeRecord">录音</button>
+    <!-- <button bindtap="handleLoginIM">登录IM</button> -->
+    <!-- <view>
+      <f2 class="f2-chart" onInit="{{onInitChart}}" wx:style="{{chartStyle}}" />
+    </view> -->
+    <sound-record-popup wx:model="{{showRecordPopup}}"></sound-record-popup>
+  </view>
+</template>
+
+<script>
+import { createPage } from "@mpxjs/core";
+import store from "../../store";
+import request from "../../request";
+const IMController = require("../../yunxinController/im");
+
+createPage({
+  data: {
+    background: ["demo-text-1", "demo-text-2", "demo-text-3"],
+    indicatorDots: true,
+    vertical: false,
+    autoplay: true,
+    interval: 2000,
+    duration: 500,
+    chartStyle: {
+      width: "750rpx",
+      height: "600rpx"
+    },
+    onInitChart(F2, config) {
+      console.log("index F2", F2);
+      console.log("index config", config);
+      const chart = new F2.Chart(config);
+      const data = [
+        {
+          type: '消费',
+          dateRange: "20200201~20200229",
+          money: 19
+        },
+        {
+          type: '消费',
+          dateRange: "20200301~20200330",
+          money: 19
+        },
+        {
+          type: '消费',
+          dateRange: "20200401~20200430",
+          money: 11
+        },
+        {
+          type: '消费',
+          dateRange: "20200501~20200530",
+          money: 38
+        },
+        {
+          type: '消费',
+          dateRange: "20200601~20200630",
+          money: 20
+        },
+        {
+          type: '消费',
+          dateRange: "20200701~20200730",
+          money: 45
+        },
+        {
+          type: '充值',
+          dateRange: "20200201~20200229",
+          money: 10
+        },
+        {
+          type: '充值',
+          dateRange: "20200301~20200330",
+          money: 28
+        },
+        {
+          type: '充值',
+          dateRange: "20200401~20200430",
+          money: 150
+        },
+        {
+          type: '充值',
+          dateRange: "20200501~20200530",
+          money: 10
+        },
+        {
+          type: '充值',
+          dateRange: "20200601~20200630",
+          money: 300
+        },
+        {
+          type: '充值',
+          dateRange: "20200701~20200730",
+          money: 100
+        },
+      ];
+      chart.source(data);
+      // 坐标轴文本旋转
+      chart.axis('dateRange', {
+        label: {
+          rotate: -Math.PI*30 / 180,
+          textAlign: 'end',
+          textBaseline: 'middle'
+        }
+      });
+      // 设置图例居中显示
+      chart.legend({
+        marker: {
+          symbol: 'circle', // marker 的形状
+          radius: 6 // 半径大小
+        },
+        align: 'center',
+        itemWidth: null // 图例项按照实际宽度渲染
+      });
+      chart
+        .interval()
+        .position("dateRange*money")
+        .color("type", [ '#FF4E4E', '#219EFF' ])
+        .adjust({
+          type: "dodge",
+          marginRatio: 0.05 // 设置分组间柱子的间距
+        });
+      chart.render();
+      // 注意：需要把chart return 出来
+      return chart;
+    },
+    account: "min_app_test1",
+    password: "abc123456",
+    showRecordPopup: false
+  },
+  computed: {
+    ...store.mapState(["count"])
+  },
+  methods: {
+    handleLoginIM() {
+      new IMController({
+        account: this.account,
+        token: this.password
+      });
+    },
+
+    // 录音
+    hanldeRecord() {
+      this.showRecordPopup = true;
+    }
+  },
+  onLoad() {},
+  onPullDownRefresh() {
+    // 需在json域开启enablePullDownRefresh
+    console.log("page onPullDownRefresh");
+    request
+      .userLogin("123")
+      .then(res => {
+        console.log(res);
+      })
+      .finally(error => {
+        console.log(error);
+      });
+  }
+});
+</script>
+
+<script name="json">
+module.exports = {
+  usingComponents: {
+    list: "../../components/list",
+    f2: "../../components/wx-chart",
+    "sound-record-popup": "../../components/sound-record-popup",
+  },
+  enablePullDownRefresh: false
+};
+</script>
+
+<style lang="scss">
+.banner {
+  height: 300rpx;
+  .swiper-item {
+    height: 100%;
+    width: 100%;
+  }
+  .demo-text-1 {
+    background-color: red;
+  }
+  .demo-text-2 {
+    background-color: blue;
+  }
+  .demo-text-3 {
+    background-color: #ccc;
+  }
+}
+
+.f2-chart {
+  width: 100%;
+  height: 500rpx;
+}
+</style>

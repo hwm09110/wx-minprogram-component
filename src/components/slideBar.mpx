@@ -1,0 +1,129 @@
+<template>
+  <view class="wrap">
+    <view class="title">请完成安全验证</view>
+    <view class="img-wrap">
+      <view class="img-box">
+        <view class="bg-img-box">
+          <image class="bg-img" src="{{imgSrc}}" mode="widthFix" />
+        </view>
+        <view class="move-img-box" style="left:{{pos.left}}">
+          <image class="move-img" src="{{imgSrc}}" mode="widthFix" />
+        </view>
+      </view>
+    </view>
+    <view class="slide-wrap">
+      <movable-area class="moveArea">
+        <movable-view direction="horizontal" class="slide-block" bindchange="handleSlideMove">
+          <view class="slide-btn">-></view>
+        </movable-view>
+      </movable-area>
+    </view>
+  </view>
+</template>
+
+<script>
+  import { createComponent } from '@mpxjs/core'
+
+  createComponent({
+    properties: {
+    },
+    data: {
+      imgSrc: 'https://www.baokaodaxue.com/passport/tupian/createSlideCode?webp=100',
+      pos: {
+        left: '0rpx'
+      }
+    },
+    ready() {
+    },
+    methods: {
+      handleSlideMove(event) {
+        console.log(event);
+        let { x, y, source } = event.detail;
+        let move_dist = x - 15 < 0 ? 0 : (x - 15);
+        console.log('move_dist', move_dist);
+        this.pos.left = `${ move_dist }px`;
+      }
+    }
+  })
+</script>
+
+<style lang="scss">
+.wrap{
+  margin: 20rpx auto;
+  border: 2rpx solid #dcdcdc;
+  width: 476rpx;
+  .title{
+    height: 60rpx;
+    line-height: 60rpx;
+    padding: 0 16rpx;
+    font-size: 28rpx;
+    color: #333;
+    border-bottom: 2rpx solid #dcdcdc;
+  }
+  .img-wrap{
+    padding: 20rpx;
+    .img-box{
+      position: relative;
+      overflow: hidden;
+      .bg-img-box{
+        // width: 436rpx;
+        width: 100%;
+        height: 276rpx;
+        overflow: hidden;
+        .bg-img{
+          // width: 436rpx;
+          width: 100%;
+          height: 276rpx;
+        }
+      }
+      .move-img-box{
+        // width: 436rpx;
+        width: 100%;
+        height: 276rpx;
+        overflow: hidden;
+        position: absolute;
+        top: 0;
+        left: 0;
+        .move-img{
+          position: absolute;
+          left: 0;
+          top: -101.5%;
+          // width: 436rpx;
+          width: 100%;
+          height: 276rpx;
+        }
+      }
+    }
+  }
+  .slide-wrap{
+    padding: 0 20rpx 20rpx;
+    .moveArea{
+      width: 100%;
+      height: 60rpx;
+      border: 2rpx solid #dcdcdc;
+      border-radius: 4rpx;
+    }
+    .slide-block{
+      width: 60rpx;
+    }
+    .slide-btn{
+      height: 60rpx;
+      line-height: 60rpx;
+      width: 60rpx;
+      text-align: center;
+      border: 2rpx solid #ddd;
+      border-radius: 4rpx;
+      &:hover{
+        background-color: #1991fa;
+        color: #fff;
+      }
+    }
+  }
+}
+</style>
+
+<script type="application/json">
+  {
+    "component": true
+  }
+</script>

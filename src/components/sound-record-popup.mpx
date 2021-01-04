@@ -1,0 +1,305 @@
+<template lang="wxml" minapp="mpx">
+  <view class="mask" hidden="{{!visible}}"></view>
+  <view class="sound-record-popup-wrap" hidden="{{!visible}}">
+    <view class="popup-top">
+      <view class="cancel-btn" bindtap="hanldeCancel">取消</view>
+      <view class="confirm-btn" bindtap="hanldeConfirm">发送</view>
+    </view>
+    <view class="popup-main">
+      <view class="record-time-tips">{{formatTime}}</view>
+      <image class="record-btn" src="{{recordBtnIcon}}" bindtouchstart="handleTouchStart" bindtouchend="handletouchend"></image>
+      <view class="record-tips">最长支持60S</view>
+    </view>
+  </view>
+</template>
+
+<script>
+import { createComponent } from '@mpxjs/core'
+
+createComponent({
+  properties: {
+    // 录音最大时长，默认60秒
+    max: {
+      type: Number,
+      value: 60
+    },
+    value: {
+      type: Boolean,
+      value: false
+    },
+  },
+  data: {
+    visible: false,
+    recordBtnIcon: require('../assets/img/components/sound-record/icon@2x.png'),
+    recordOptions: {
+      duration: 60000, //录音的时长，单位 ms
+      format: 'mp3', // 音频格式
+      sampleRate: 16000, // 采样率
+      numberOfChannels: 1, // 录音通道数
+      encodeBitRate: 96000, // 编码码率
+      frameSize: 50 // 指定帧大小，单位 KB。传入 frameSize 后，每录制指定帧大小的内容后，会回调录制的文件内容，不指定则不会回调。暂仅支持 mp3 格式。
+    },
+    recorderManager: null, //录音实例
+    recordStartTime: 0, //开始录音时间 毫秒
+    recordEndTime: 0, //结束录音时间 毫秒
+    recordSeconds: 0, // 录音时长，秒
+    recordTimer: null,  // 录音计时器
+  },
+  computed: {
+    // 格式化后的录音时长
+    formatTime() {
+      return this.recordSeconds == 0 ? '点击录音' : this.formatSecondsToString(this.recordSeconds)
+    }
+  },
+  watch: {
+    value(newVal) {
+      this.visible = newVal;
+      if(newVal) {
+        this.init();
+      }
+    }
+  },
+  async created() {
+
+  },
+  methods: {
+    async init() {
+      let hasRecordAuth = await this.checkRecordAuth();
+      console.log('已经授权录音:', hasRecordAuth);
+      if(!hasRecordAuth) {
+        let hasGetAuth = await this.getUserRecordAuth();
+        if(!hasGetAuth) {
+          wx.showModal({
+            title: '提示',
+            content: '拒绝授权将无法录音！',
+            showCancel: false,
+            cancelText: '取消',
+            cancelColor: '#000000',
+            confirmText: '确定',
+            confirmColor: '#3CC51F',
+            success: (result) => {
+              if(result.confirm){
+
+              }
+            }
+          });
+        }
+      }
+      this.initRecorderManager();
+    },
+    resetPopup() {
+      this.recorderManager = null;
+      this.recordStartTime = 0;
+      this.recordEndTime = 0;
+      this.recordSeconds = 0;
+      this.recordTimer = null;
+    },
+    // 检查是否授权录音
+    checkRecordAuth() {
+      return new Promise((resolve, reject)=>{
+        wx.getSetting({
+          success: (res)=>{
+            console.log(res);
+            if(res.errMsg === "getSetting:ok") {
+              let hasAuth = res.authSetting['scope.record'] ? true : false;
+              resolve(hasAuth);
+            }else{
+              reject();
+            }
+          },
+          fail: ()=>{
+            reject();
+          },
+        });
+      })
+    },
+    // 获取用户授权
+    getUserRecordAuth() {
+      return new Promise((resolve, reject)=>{
+        wx.authorize({
+          scope: 'scope.record',
+          success: (res)=>{
+            console.log(res);
+            resolve(res.errMsg === "authorize:ok")
+          },
+          fail: (error)=>{
+            console.log(error);
+            resolve(false);
+          }
+        });
+      })
+    },
+    // 取消
+    hanldeCancel() {
+      this.triggerEvent('input', false);
+      this.resetPopup();
+    },
+    // 发送
+    hanldeConfirm() {
+
+    },
+    // 录音-按下
+    handleTouchStart(event) {
+      console.log('按下>>>', this.recorderManager.start);
+      this.recorderManager.start(this.recordOptions);
+    },
+    // 录音-松开
+    handletouchend(event) {
+      console.log('松开>>>', event);
+      if(this.recordSeconds == 0) {
+        this.showToast('录音时间不能小于1秒');
+        return false;
+      }
+      this.recorderManager.stop();
+    },
+    // 创建初始化录音实例
+    initRecorderManager() {
+      let recordManager = wx.getRecorderManager();
+      this.recorderManager = recordManager;
+      console.log('录音实例>>>', this.recorderManager);
+      // 录音开始
+      this.recorderManager.onStart(()=>{
+        console.log('录音开始>>>');
+        this.handleRecordStart();
+      });
+      // 录音结束
+      this.recorderManager.onStop((res)=>{
+        console.log('录音结束>>>', res);
+        this.handleRecordFinish(res);
+      });
+      // 录音暂停
+      this.recorderManager.onPause(()=>{
+        console.log('录音暂停>>>');
+      });
+      // 录音继续
+      this.recorderManager.onResume(()=>{
+        console.log('录音继续>>>');
+      });
+      // 监听录音因为受到系统占用而被中断开始事件。以下场景会触发此事件：微信语音聊天、微信视频聊天。此事件触发后，录音会被暂停。pause 事件在此事件后触发
+      this.recorderManager.onInterruptionBegin(()=>{
+        console.log('录音因为受到系统占用而被中断>>>');
+      });
+      // 监听录音中断结束事件。在收到 interruptionBegin 事件之后，小程序内所有录音会暂停，收到此事件之后才可再次录音成功
+      this.recorderManager.onInterruptionEnd(()=>{
+        console.log('录音因为受到系统占用而被中断,录音可以继续>>>');
+      });
+      // 录音错误
+      this.recorderManager.onError((res)=>{
+        console.log('录音错误>>>');
+        this.handleRecordError(res);
+      });
+    },
+    // 开始录音回调
+    handleRecordStart() {
+      this.recordStartTime = Date.now();
+      console.log('开始录音时间>>', this.recordStartTime);
+      this.recordSeconds = 0;
+      this.recordSeconds++;
+      this.recordTimer = setInterval(() => {
+        this.recordSeconds++;
+      }, 1000);
+    },
+    // 录音完成回调
+    handleRecordFinish(res) {
+      clearInterval(this.recordTimer);
+      this.recordTimer = null;
+      const { tempFilePath, duration, fileSize } = res;
+      this.recordEndTime = Date.now();
+      const timerDuration = Math.floor((this.recordEndTime - this.recordStartTime) / 1000);
+      console.log('微信api计算时长>>>', duration);
+      console.log('定时器计算时长>>>', timerDuration);
+
+    },
+    // 录音错误回调
+    handleRecordError(res) {
+      const { errMsg } = res;
+      this.showToast(errMsg);
+    },
+    // 把秒数转换成 hh:mm:ss
+    formatSecondsToString(seconds) {
+      let hours = Math.floor(seconds/60/60%60);
+      let minutes = Math.floor(seconds/60%60);
+	    let second = Math.floor(seconds%60);
+      let stringFormat = function (i) {
+        return i < 10 ? `0${i}` : `${i}`;
+      }
+      let str = `${stringFormat(hours)}:${stringFormat(minutes)}:${stringFormat(second)}`;
+      console.log(str)
+      return str;
+    },
+    // toast
+    showToast(msg) {
+      wx.showToast({
+        title: msg,
+        icon: 'none',
+        duration: 2500,
+        mask: true
+      });
+    }
+  }
+})
+</script>
+
+<script type="application/json">
+  {
+    "component": true
+  }
+</script>
+
+<style lang="scss">
+.mask{
+  position: fixed;
+  left: 0;
+  top: 0;
+  background-color: rgba(0,0,0,0.4);
+  width: 100vw;
+  height: 100vh;
+  z-index: 10;
+}
+.sound-record-popup-wrap{
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  z-index: 11;
+  background-color: #fff;
+  width: 100vw;
+  height: 402rpx;
+  .popup-top{
+    padding: 30rpx 40rpx;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 32rpx;
+    font-family: PingFangSC-Regular, PingFang SC;
+    font-weight: 400;
+    color: #444444;
+    .confirm-btn{
+      color: #219EFF;
+    }
+  }
+  .popup-main{
+    display: flex;
+    flex-direction: column;
+    // justify-content: center;
+    align-items: center;
+    padding-top: 40rpx;
+    .record-time-tips{
+      font-size: 24rpx;
+      font-family: PingFangSC-Regular, PingFang SC;
+      font-weight: 400;
+      color: #ABB1B8;
+    }
+    .record-btn{
+      margin: 30rpx 0;
+      width: 120rpx;
+      height: 120rpx;
+    }
+    .record-tips{
+      font-size: 24rpx;
+      font-family: PingFangSC-Regular, PingFang SC;
+      font-weight: 400;
+      color: #ABB1B8;
+    }
+  }
+}
+</style>

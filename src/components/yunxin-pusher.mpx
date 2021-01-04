@@ -1,0 +1,229 @@
+<template>
+  <!--components/yunxin-pusher/yunxin-pusher.wxml-->
+  <view class="pusher-container" id="rtcpusher" style="left: {{config.x}}px; top: {{config.y}}px; width: {{config.width}}px; height: {{config.height}}px; position: absolute;">
+    <live-pusher
+      style="height:{{config.height}}px; position: absolute; width: 100%; "
+      url="{{url}}"
+      wx:if="{{url.length !== 0}}"
+      mode="RTC"
+      aspect="{{aspect}}"
+      class="camera"
+      bindstatechange="stateChangeHandler"
+      bindnetstatus="netChangeHandler"
+      background-mute="true"
+      enable-camera="{{enableCamera}}"
+      muted="{{muted}}"
+      beauty="{{beauty}}"
+      max-bitrate="500"
+      min-bitrate="200"
+      debug="{{debug}}"
+      autopush="true">
+      <slot />
+      <cover-view
+        wx-if="{{status !== 'ready'}}"
+        class="sud flex-center-column"
+        style="display:flex;position: absolute; width: 100%; height: 100%;justify-content:center;align-items:center;">
+        <cover-image style="width: 182rpx;height:240rpx" src="../../images/yunxin/{{status}}.png"></cover-image>
+      </cover-view>
+      <cover-view style="position: absolute;top:10px;left:10px;font-size: 28rpx; right: 10px;color:#ccc;" wx-if="{{coverText.length != 0}}">
+        {{coverText}}
+      </cover-view>
+    </live-pusher>
+  </view>
+</template>
+
+<script>
+  import { createComponent } from '@mpxjs/core'
+
+  createComponent({
+    properties: {
+      config: {
+        type: Object,
+        value: {
+          x: 0,
+          y: 0,
+          width: 0,
+          height: 0
+        }
+      },
+      debug: {
+        type: Boolean,
+        value: false
+      },
+      minBitrate: {
+        type: Number,
+        value: 200
+      },
+      maxBitrate: {
+        type: Number,
+        value: 500
+      },
+      enableCamera: {
+        type: Boolean,
+        value: true
+      },
+      muted: {
+        type: Boolean,
+        value: false
+      },
+      beauty: {
+        type: String,
+        value: 0
+      },
+      aspect: {
+        type: String,
+        value: "3:4"
+      },
+      /**
+       * 加载状态：loading、ready、error
+       */
+      status: {
+        type: String,
+        value: "loading",
+        observer: function (newVal, oldVal, changedPath) {
+          console.log(`yunxin-pusher status changed from ${oldVal} to ${newVal}`);
+        }
+      },
+      coverText: {
+        type: String,
+        value: ''
+      },
+      url: {
+        type: String,
+        value: "",
+        observer: function (newVal, oldVal, changedPath) {
+        }
+      }
+    },
+    data: {
+      livePusherContext: null, // 组件操作上下文
+      isDetached: false // 组件是否被移除标记
+    },
+    /**
+     * 组件生命周期
+     */
+    lifetimes: {
+      /**
+       * 在组件实例被从页面节点树移除时执行
+       */
+      detached: function () {
+        console.log("yunxin-pusher isDetached");
+        // auto stop yunxin-pusher when detached
+        // this.stop()
+        this.setData({
+          isDetached: true
+        })
+      },
+      /**
+       * 在组件布局完成后执行，此时可以获取节点信息
+       */
+      attached: function () {
+        console.log("yunxin-pusher ready")
+        this.start()
+        this.setData({
+          isDetached: false
+        })
+      },
+    },
+    /**
+     * 组件的方法列表
+     */
+    methods: {
+      /**
+       * 播放推流
+       * 一般情况下不应手动调用，在推流组件预备好后会自动被调用
+       */
+      start(options = {}) {
+        if (!this.livePusherContext) {
+          this.livePusherContext = wx.createLivePusherContext()
+        }
+        console.log(`starting yunxin-pusher`);
+        this.livePusherContext.start(options)
+      },
+      /**
+       * 停止推流
+       */
+      stop(options = {}) {
+        if (this.livePusherContext) {
+          console.log(`stopping yunxin-pusher`);
+          this.livePusherContext.stop(options)
+        }
+      },
+      /**
+       * 切换前后摄像头
+       */
+      switchCamera() {
+        this.livePusherContext.switchCamera()
+      },
+      /**
+       * 快照
+       */
+      snapshot() {
+        this.livePusherContext.snapshot()
+      },
+
+      /**
+       * 推流状态变化事件回调
+       */
+      stateChangeHandler(e) {
+        console.warn(`yunxin-pusher code: ${e.detail.code} - ${e.detail.message}`)
+        if (e.detail.code === -1307) { // 网络断连，且经多次重连抢救无效，更多重试请自行重启推
+          console.log('yunxin-pusher stopped', `code: ${e.detail.code}`);
+          this.setData({
+            status: "error"
+          })
+          this.livePusherContext.stop({
+            complete: () => {
+              this.livePusherContext.start()
+            }
+          })
+          this.triggerEvent('pushfailed');
+        } else if (e.detail.code === 1008) { // 编码器启动
+          console.log(`yunxin-pusher started`, `code: ${e.detail.code}`);
+          if (this.data.status === "loading") {
+            this.setData({
+              status: "ready"
+            })
+          }
+        }
+      },
+      /**
+       * 网络状态通知回调
+       */
+      netChangeHandler(e) {
+        // console.log(`network: ${JSON.stringify(e.detail)}`);
+      },
+      /**
+       * 开启调试
+       */
+      toggleDebug(isDebug) {
+        this.setData({
+          debug: isDebug
+        })
+      }
+    }
+  })
+</script>
+
+<style lang="scss">
+/* components/yunxin-pusher/yunxin-pusher.wxss */
+.pusher-container{
+  background: black;
+  display: block;
+  position: absolute;
+}
+
+.sud{
+  background-color: #1B2A38;
+  opacity:0.65;
+}
+.camera {
+  z-index: 1000;
+}
+</style>
+
+<script type="application/json">
+  {
+    "component": true
+  }
+</script>

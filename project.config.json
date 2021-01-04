@@ -1,0 +1,15 @@
+{
+  "compileType": "miniprogram",
+  "setting": {
+    "newFeature": true,
+    "urlCheck": true,
+    "es6": false,
+    "postcss": true,
+    "minified": false,
+    "autoAudits": false
+  },
+  "appid": "wx10b5f80b1107dd8e",
+  "projectname": "ztxy-teacher-minprogram",
+  "description": "掌通校园教师版",
+  "condition": {}
+}

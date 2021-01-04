@@ -1,0 +1,87 @@
+<script>
+  import mpx from '@mpxjs/core'
+  // import apiProxy from '@mpxjs/api-proxy'
+  // mpx.use(apiProxy, {})
+  // import YUNXIN_CONFIG from './config/yunxinConfig'
+  // import IMController from './yunxinController/im'
+  const YUNXIN_CONFIG = require('./config/yunxinConfig')
+
+  mpx.createApp({
+    globalData: {
+      YUNXIN_CONFIG,
+      nim: null, // NIM实例
+      netcallController: null,
+      isPushBeCallPage: false,
+      videoContainerSize: {}
+    },
+    onShow(options) {
+      console.log(options)
+      console.log('YUNXIN_CONFIG', YUNXIN_CONFIG)
+    },
+    onLaunch() {
+      let systemInfo = wx.getSystemInfoSync()
+      this.globalData.videoContainerSize = {
+        width: systemInfo.windowWidth,
+        height: systemInfo.windowHeight
+      };
+      this.globalData.isPushBeCallPage = false;
+    }
+  })
+</script>
+
+<style lang="scss">
+
+</style>
+
+<!--
+<script type="application/json">
+  {
+    "pages": [
+      "./pages/index",
+      "./pages/my/index"
+    ],
+    "tabBar": {
+      "list": [
+        {
+          "pagePath": "pages/index",
+          "text": "首页"
+        },
+        {
+          "pagePath": "pages/my/index",
+          "text": "我的"
+        }
+      ]
+    },
+    "window": {
+      "enablePullDownRefresh": true
+    }
+  }
+</script> -->
+
+<!--JSON还可通过以下形式编写-->
+
+<script name="json">
+  // 可以写注释，通过defs注入的常量做一些判断之类的操作
+  module.exports = {
+    pages: [
+      "./pages/index/index",
+      "./pages/index/videocall",
+      "./pages/my/index",
+    ],
+    tabBar: {
+      list: [
+        {
+          pagePath: "pages/index/index",
+          text: "首页"
+        },
+        {
+          pagePath: "pages/my/index",
+          text: "我的"
+        }
+      ]
+    },
+    window: {
+      enablePullDownRefresh: false
+    }
+  }
+</script>

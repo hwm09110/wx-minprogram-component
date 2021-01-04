@@ -1,0 +1,65 @@
+<template>
+  <view class="container">
+    我的{{ count }}
+    <button bindtap="hanldeAdd">增加</button>
+    <slideBar />
+  </view>
+</template>
+
+<script>
+  import { createPage } from '@mpxjs/core'
+  import store from '../../store'
+
+  createPage({
+    data: {
+    },
+    computed: {
+      ...store.mapState(['count'])
+    },
+    methods: {
+      hanldeAdd() {
+        console.log('aa')
+        store.commit('increment')
+      },
+    },
+    onLoad () {},
+    onPullDownRefresh () {
+      // 需在json域开启enablePullDownRefresh
+      console.log('page onPullDownRefresh');
+      console.log(store.state.count);
+    }
+  })
+</script>
+
+<script name="json">
+  module.exports = {
+    usingComponents: {
+      'slideBar': '../../components/slideBar'
+    },
+    enablePullDownRefresh: false
+  }
+</script>
+
+<style lang="scss">
+.banner{
+  height: 300rpx;
+  .swiper-item{
+    height: 100%;
+    width: 100%;
+  }
+  .demo-text-1{
+    background-color: red;
+  }
+  .demo-text-2{
+    background-color: blue;
+  }
+  .demo-text-3{
+    background-color: #ccc;
+  }
+}
+
+.f2-chart{
+  width: 500rpx;
+  height: 500rpx;
+}
+</style>
